@@ -216,8 +216,10 @@ def save_energy_consumption_plot(energy_summary, output_path='energy_consumption
     monthly_data = energy_summary[~energy_summary['supply period'].isin(['Total', 'Average', 'Max', 'Min'])]
 
     # Ensure 'kwh' and 'kw' columns are numeric (remove commas and convert to float)
-    monthly_data.loc[:, 'kwh'] = monthly_data['kwh'].str.replace(',', '').astype(float)
-    monthly_data.loc[:, 'kw'] = monthly_data['kw'].str.replace(',', '').astype(float)
+    # Use .loc to avoid SettingWithCopyWarning
+    monthly_data = monthly_data.copy()  # Ensure we're working with a copy
+    monthly_data['kwh'] = monthly_data['kwh'].str.replace(',', '').astype(float)
+    monthly_data['kw'] = monthly_data['kw'].str.replace(',', '').astype(float)
 
     # Find the highest values for setting axis limits
     max_kwh = monthly_data['kwh'].max()
@@ -265,11 +267,17 @@ def save_energy_consumption_plot(energy_summary, output_path='energy_consumption
     fig.tight_layout()
 
     # Handle the legends separately
-    lines, labels = ax1.get_legend_handles_labels()  # Get handles and labels for the first axis
+    lines1, labels1 = ax1.get_legend_handles_labels()  # Get handles and labels for the first axis
     lines2, labels2 = ax2.get_legend_handles_labels()  # Get handles and labels for the second axis
-    ax1.legend(lines + lines2, labels + labels2, loc='upper left', bbox_to_anchor=(0.1, 0.95))  # Combine and place legend
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left', bbox_to_anchor=(0.1, 0.95))  # Combine and place legend
 
     # Save the plot as an image
     plt.savefig(output_path, bbox_inches='tight')
     plt.close(fig)  # Close the plot to free up memory
 
+# Example usage:
+output_path = 'energy_consumption_plot.png'
+save_energy_consumption_plot(energy_summary_result, output_path=output_path)
+
+# Print confirmation message
+print(f"Energy consumption plot saved as {output_path}")
