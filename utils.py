@@ -181,43 +181,64 @@ def plot_hourly_by_day_load_curve(hourly_by_day_summary, column_name='max', unit
 
 def save_energy_consumption_plot(energy_summary, output_path):
     import matplotlib.pyplot as plt
+    import pandas as pd
+    import numpy as np
 
-    # Copy data to avoid SettingWithCopyWarning
-    energy_summary = energy_summary.copy()
-    
-    fig, ax1 = plt.subplots(figsize=(12, 6))
+    # Filter out rows labeled 'Total', 'Average', 'Max', or 'Min'
+    monthly_data = energy_summary[~energy_summary['supply period'].isin(['Total', 'Average', 'Max', 'Min'])]
 
-    # Plot kWh as a bar plot
-    ax1.bar(energy_summary.index, energy_summary['kwh'], color='skyblue', label='Energy (kWh)')
-    ax1.set_xlabel('Date')
-    ax1.set_ylabel('Energy (kWh)', color='skyblue')
-    ax1.tick_params(axis='y', labelcolor='skyblue')
+    # Convert 'kwh' and 'kw' columns back to numeric since they're currently formatted as strings with commas
+    monthly_data['kwh'] = monthly_data['kwh'].str.replace(',', '').astype(float)
+    monthly_data['kw'] = monthly_data['kw'].str.replace(',', '').astype(float)
+
+    # Find the highest values for setting axis limits
+    max_kwh = monthly_data['kwh'].max()
+    max_kw = monthly_data['kw'].max()
     
-    # Adding labels on the bars
-    for index, value in enumerate(energy_summary['kwh']):
-        ax1.text(index, value / 2, f'{value:.2f}', ha='center', color='black', fontweight='bold')
-    
-    # Plot kW as a line plot
+    fig, ax1 = plt.subplots(figsize=(12, 7))
+
+    # Bar plot for 'kwh' with thinner bars
+    bar_width = 0.4
+    bars = ax1.bar(monthly_data['supply period'], monthly_data['kwh'], color='orange', label='kWh', width=bar_width)
+    ax1.set_xlabel('Supply Period (Month)')
+    ax1.set_ylabel('kWh', color='black')
+    ax1.tick_params(axis='y', labelcolor='black')
+
+    # Set kWh axis limits and ticks
+    ax1.set_ylim(0, max_kwh + 10000)
+    ax1.set_yticks(np.arange(0, max_kwh + 10000, 10000))
+
+    # Add labels at the center of each bar's height for kWh values
+    for bar in bars:
+        # Position the label at half the height of each bar
+        label_y_position = bar.get_height() / 2
+        ax1.text(
+        bar.get_x() + bar.get_width() / 2, label_y_position,
+        f'{bar.get_height():,.2f}', ha='center', va='center', color='black', fontsize=10
+        )
+
+    # Secondary y-axis for 'kw' with line plot and markers
     ax2 = ax1.twinx()
-    ax2.plot(energy_summary.index, energy_summary['kw'], color='orange', marker='o', linestyle='-', label='Demand (kW)')
-    ax2.set_ylabel('Demand (kW)', color='orange')
-    ax2.tick_params(axis='y', labelcolor='orange')
+    line, = ax2.plot(monthly_data['supply period'], monthly_data['kw'], color='green', marker='o', label='kW')
+    ax2.set_ylabel('kW', color='black')
+    ax2.tick_params(axis='y', labelcolor='black')
 
-    # Adding labels on the kW data points
-    for index, value in enumerate(energy_summary['kw']):
-        ax2.text(index, value + 0.1, f'{value:.2f}', ha='center', color='orange', fontweight='bold')
-    
+    # Set kW axis limits and ticks
+    ax2.set_ylim(100, max_kw + 100)
+    ax2.set_yticks(np.arange(100, max_kw + 100, 100))
+
+    # Add labels to each point for kW values with one decimal place
+    for x, y in zip(monthly_data['supply period'], monthly_data['kw']):
+        ax2.text(x, y + 10, f'{y:,.2f}', ha='center', va='bottom', color='black', fontsize=10)
+
+    # Title and layout adjustments
+    plt.title('Monthly Energy Consumption (kWh) and Peak Demand (kW)')
     fig.tight_layout()
 
-    # Correctly combine legend handles and labels
-    lines1, labels1 = ax1.get_legend_handles_labels()
-    lines2, labels2 = ax2.get_legend_handles_labels()
-    fig.legend(lines1 + lines2, labels1 + labels2, loc='upper left', bbox_to_anchor=(0.1, 0.95))
-    
-    # Save plot as an image
-    plt.savefig(output_path)
-    plt.close(fig)
-    
+    # Save the plot as an image
+    plt.savefig('energy_consumption_plot.png', bbox_inches='tight')
+    plt.close(fig)  # Close the plot to free up memory
+
     print(f"Energy consumption plot saved as {output_path}")
 
 
