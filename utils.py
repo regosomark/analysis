@@ -179,98 +179,46 @@ def plot_hourly_by_day_load_curve(hourly_by_day_summary, column_name='max', unit
 
   plt.show()
 
+def save_energy_consumption_plot(energy_summary, output_path):
+    import matplotlib.pyplot as plt
 
+    # Copy data to avoid SettingWithCopyWarning
+    energy_summary = energy_summary.copy()
+    
+    fig, ax1 = plt.subplots(figsize=(12, 6))
 
-def save_load_factor_table(energy_summary, output_path='load_factor_table.png'):
-    """
-    Generates a table for the monthly load factor and saves it as an image.
-
-    Parameters:
-    - energy_summary (pd.DataFrame): DataFrame with 'supply period' and 'load factor' columns.
-    - output_path (str): File path where the table image will be saved.
-    """
-    # Filter out rows labeled 'Total', 'Average', 'Max', or 'Min'
-    filtered_energy_summary = energy_summary[~energy_summary['supply period'].isin(['Total', 'Average', 'Max', 'Min'])]
-
-    # Select the relevant columns for months and load factor
-    months_load_factor = filtered_energy_summary[['supply period', 'load factor']]
-
-    # Transpose the DataFrame
-    transposed_table = months_load_factor.set_index('supply period').T
-
-    # Plotting the transposed table as an image
-    fig, ax = plt.subplots(figsize=(8, 4))  # Set figure size for the table
-    ax.axis('tight')
-    ax.axis('off')
-    table = ax.table(cellText=transposed_table.values, colLabels=transposed_table.columns, loc='center')
-    table.auto_set_font_size(False)
-    table.set_fontsize(10)
-    table.scale(1.2, 1.2)  # Scale the table for better visibility
-
-    # Save the table as an image
-    plt.savefig(output_path, bbox_inches='tight')
-    plt.close(fig)  # Close the plot to free up memory
-
-def save_energy_consumption_plot(energy_summary, output_path='energy_consumption_plot.png'):
-    # Filter out summary data that we don't want to include in the plot
-    monthly_data = energy_summary[~energy_summary['supply period'].isin(['Total', 'Average', 'Max', 'Min'])]
-
-    # Ensure 'kwh' and 'kw' columns are numeric (remove commas and convert to float)
-    # Use .loc to avoid SettingWithCopyWarning
-    monthly_data = monthly_data.copy()  # Create a copy to avoid SettingWithCopyWarning
-    monthly_data['kwh'] = monthly_data['kwh'].str.replace(',', '').astype(float)
-    monthly_data['kw'] = monthly_data['kw'].str.replace(',', '').astype(float)
-
-    # Find the highest values for setting axis limits
-    max_kwh = monthly_data['kwh'].max()
-    max_kw = monthly_data['kw'].max()
-
-    # Plotting
-    fig, ax1 = plt.subplots(figsize=(12, 7))
-
-    # Bar plot for 'kwh' with thinner bars
-    bar_width = 0.4
-    bars = ax1.bar(monthly_data['supply period'], monthly_data['kwh'], color='orange', label='kWh', width=bar_width)
-    ax1.set_xlabel('Supply Period (Month)')
-    ax1.set_ylabel('kWh', color='black')
-    ax1.tick_params(axis='y', labelcolor='black')
-
-    # Set kWh axis limits and ticks
-    ax1.set_ylim(0, max_kwh + 10000)
-    ax1.set_yticks(np.arange(0, max_kwh + 10000, 10000))
-
-    # Add labels at the center of each bar's height for kWh values
-    for bar in bars:
-        # Position the label at half the height of each bar
-        label_y_position = bar.get_height() / 2
-        ax1.text(
-            bar.get_x() + bar.get_width() / 2, label_y_position,
-            f'{bar.get_height():,.2f}', ha='center', va='center', color='black', fontsize=10
-        )
-
-    # Secondary y-axis for 'kw' with line plot and markers
+    # Plot kWh as a bar plot
+    ax1.bar(energy_summary.index, energy_summary['kwh'], color='skyblue', label='Energy (kWh)')
+    ax1.set_xlabel('Date')
+    ax1.set_ylabel('Energy (kWh)', color='skyblue')
+    ax1.tick_params(axis='y', labelcolor='skyblue')
+    
+    # Adding labels on the bars
+    for index, value in enumerate(energy_summary['kwh']):
+        ax1.text(index, value / 2, f'{value:.2f}', ha='center', color='black', fontweight='bold')
+    
+    # Plot kW as a line plot
     ax2 = ax1.twinx()
-    line, = ax2.plot(monthly_data['supply period'], monthly_data['kw'], color='green', marker='o', label='kW')
-    ax2.set_ylabel('kW', color='black')
-    ax2.tick_params(axis='y', labelcolor='black')
+    ax2.plot(energy_summary.index, energy_summary['kw'], color='orange', marker='o', linestyle='-', label='Demand (kW)')
+    ax2.set_ylabel('Demand (kW)', color='orange')
+    ax2.tick_params(axis='y', labelcolor='orange')
 
-    # Set kW axis limits and ticks
-    ax2.set_ylim(100, max_kw + 100)
-    ax2.set_yticks(np.arange(100, max_kw + 100, 100))
-
-    # Add labels to each point for kW values with one decimal place
-    for x, y in zip(monthly_data['supply period'], monthly_data['kw']):
-        ax2.text(x, y + 10, f'{y:,.2f}', ha='center', va='bottom', color='black', fontsize=10)
-
-    # Title and layout adjustments
-    plt.title('Monthly Energy Consumption (kWh) and Peak Demand (kW)')
+    # Adding labels on the kW data points
+    for index, value in enumerate(energy_summary['kw']):
+        ax2.text(index, value + 0.1, f'{value:.2f}', ha='center', color='orange', fontweight='bold')
+    
     fig.tight_layout()
 
-    # Handle the legends separately
-    lines1, labels1 = ax1.get_legend_handles_labels()  # Get handles and labels for the first axis
-    lines2, labels2 = ax2.get_legend_handles_labels()  # Get handles and labels for the second axis
-    ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left', bbox_to_anchor=(0.1, 0.95))  # Combine and place legend
+    # Correctly combine legend handles and labels
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    fig.legend(lines1 + lines2, labels1 + labels2, loc='upper left', bbox_to_anchor=(0.1, 0.95))
+    
+    # Save plot as an image
+    plt.savefig(output_path)
+    plt.close(fig)
+    
+    print(f"Energy consumption plot saved as {output_path}")
 
-    # Save the plot as an image
-    plt.savefig(output_path, bbox_inches='tight')
-    plt.close(fig)  # Close the plot to free up memory
+
+
