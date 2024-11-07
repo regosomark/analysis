@@ -217,7 +217,7 @@ def save_energy_consumption_plot(energy_summary, output_path='energy_consumption
 
     # Ensure 'kwh' and 'kw' columns are numeric (remove commas and convert to float)
     # Use .loc to avoid SettingWithCopyWarning
-    monthly_data = monthly_data.copy()  # Ensure we're working with a copy
+    monthly_data = monthly_data.copy()  # Create a copy to avoid SettingWithCopyWarning
     monthly_data['kwh'] = monthly_data['kwh'].str.replace(',', '').astype(float)
     monthly_data['kw'] = monthly_data['kw'].str.replace(',', '').astype(float)
 
@@ -274,10 +274,3 @@ def save_energy_consumption_plot(energy_summary, output_path='energy_consumption
     # Save the plot as an image
     plt.savefig(output_path, bbox_inches='tight')
     plt.close(fig)  # Close the plot to free up memory
-
-# Example usage:
-output_path = 'energy_consumption_plot.png'
-save_energy_consumption_plot(energy_summary_result, output_path=output_path)
-
-# Print confirmation message
-print(f"Energy consumption plot saved as {output_path}")
