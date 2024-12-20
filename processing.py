@@ -71,111 +71,58 @@ def add_table_to_slide(slide, enery_summary, rows, cols, x, y, width, height):
   return table
 
 
-def process_data_and_generate_reports(client_name: str):
+def process_data_and_generate_summary(client_name: str):
   """
   Fetches and processes client data, generating various energy-related reports.
+  :param client_name: Name of the client whose data is to be fetched and processed.
+  :return: Tuple of processed data and raw client data.
   """
-  try:
-    # Fetch client data from the database
-    client_data = fetch_client_load_profile(client_name)
+  # Fetch client data
+  client_data = fetch_client_load_profile(client_name)
+  if client_data.empty:
+    raise ValueError(f"No data found for client: {client_name}")
 
+  # Process data
+  processed_data = process_energy_data(client_data)
+
+  # Generate energy summary
+  energy_summary = generate_energy_summary(processed_data)
+
+  # Ensure 'load factor' column exists
+  if 'load factor' not in energy_summary.columns:
+    energy_summary['load factor'] = pd.NA
+
+  return processed_data, client_data
+
+
+def generate_ppt(client_name: str, folder_path: str, template_path: str):
+  try:
+      # Fetch client data
+    client_data = fetch_client_load_profile(client_name)
     if client_data.empty:
       raise ValueError(f"No data found for client: {client_name}")
 
-    # Ensure all necessary columns are in the correct format
-    # client_data['kwh'] = pd.to_numeric(client_data['kwh'], errors='coerce')
-    # client_data['kw'] = pd.to_numeric(client_data['kw'], errors='coerce')
-
-    # Process data and generate summaries and plots
+    # Process data
     processed_data = process_energy_data(client_data)
+
+    # Generate energy summary
     energy_summary = generate_energy_summary(processed_data)
 
-    # Check if 'load factor' is in the summary
-    if 'load factor' not in energy_summary.columns:
-      print(f"Warning: 'load factor' missing from energy summary. Adding default NaN values.")
-      energy_summary['load factor'] = pd.NA  # Adding missing load factor as NaN
-
-    print("Energy Summary Columns:", energy_summary.columns.tolist())
-
-    # Create image folder if it doesn't exist
-    image_folder = "image"
-    os.makedirs(image_folder, exist_ok=True)
-
-    # Generate images with debugging
-    try:
-      print("Generating energy consumption plot...")
-      energy_consumption_plot(processed_data)
-      print("Energy consumption plot saved.")
-    except Exception as e:
-      print(f"Error generating energy consumption plot: {e}")
-
-    try:
-      print("Generating energy behavior plot...")
-      energy_behavior_plot(processed_data)
-      print("Energy behavior plot saved.")
-    except Exception as e:
-      print(f"Error generating energy behavior plot: {e}")
-
-    # Hourly load curve
-    try:
-      hourly_load_curve_by_day = client_data.pivot_table(
-          index="hour",
-          columns="weekday",
-          values="kw",
-          aggfunc={"kw": "mean"}
-      )
-      plot_hourly_by_day_load_curve(hourly_load_curve_by_day, column_name='max', unit='kW')
-      print("Hourly load curve plot saved.")
-    except Exception as e:
-      print(f"Error generating hourly load curve plot: {e}")
-
-    try:
-      hourly_load_table(hourly_load_curve_by_day)
-      print("Hourly heatmap saved.")
-    except Exception as e:
-      print(f"Erorr generating hourly heatmap: {e}")
-
-    # Demand and consumption
-    try:
-      plot_demand_and_consumption_WESM(processed_data)
-      print("Demand and consumption plot saved.")
-    except Exception as e:
-      print(f"Error generating demand and consumption plot: {e}")
-
-    # Daily report
-    try:
-      generate_daily_report(
-          client_data=client_data,
-          values_column='kw',
-          wesm_column='wesm'
-      )
-      print("Daily report saved.")
-    except Exception as e:
-      print(f"Error generating daily report: {e}")
-
-    # Return the processed data and images for PowerPoint creation
+    # Dictionary of existing image paths from the image folder
     image_paths = {
-        'energy_consumption': os.path.join(image_folder, 'energy_consumption.png'),
-        'energy_behavior': os.path.join(image_folder, 'energy_behavior.png'),
-        'hourly_load_curve': os.path.join(image_folder, 'hourly_load_curve.png'),
-        'peak_demand_plot': os.path.join(image_folder, 'peak_demand_plot.png'),
-        'demand_consumption_wesm': os.path.join(image_folder, 'demand_consumption_wesm.png'),
-        'daily_kw_report': os.path.join(image_folder, 'daily_kw_report.png'),
+        'energy_consumption': os.path.join(folder_path, 'energy_consumption.png'),
+        'energy_behavior': os.path.join(folder_path, 'energy_behavior.png'),
+        'hourly_load_curve': os.path.join(folder_path, 'hourly_load_curve.png'),
+        'hourly_load_heatmap': os.path.join(folder_path, 'hourly_load_heatmap.png'),
+        'daily_kw_report': os.path.join(folder_path, 'daily_kw_report.png'),
+        'demand_consumption_wesm': os.path.join(folder_path, 'demand_consumption_wesm.png')
     }
 
-    return energy_summary, image_paths
-
-  except Exception as e:
-    print(f"Error in process_data_and_generate_reports: {e}")
-    return None, None
-
-
-def generate_ppt(client_name: str, image_folder: str, template_path: str):
-  """
-  Main function to generate PowerPoint report for the given client.
-  """
-  try:
-    energy_summary, image_paths = process_data_and_generate_reports(client_name)
+    # Debug: Print the full paths of the images to check if they are correct
+    for key, path in image_paths.items():
+      print(f"Checking image path for {key}: {path}")
+      if not os.path.exists(path):
+        raise Exception(f"Image file for {key} not found: {path}")
 
     # Load PowerPoint template
     ppt = Presentation(template_path)
@@ -202,7 +149,7 @@ def generate_ppt(client_name: str, image_folder: str, template_path: str):
     slide5 = ppt.slides.add_slide(ppt.slide_layouts[1])
     slide5.shapes.title.text = "Daily Average Demand"
     slide5.shapes.add_picture(image_paths['hourly_load_curve'], Inches(0.4), Inches(2), Inches(8), Inches(5.2))
-    slide5.shapes.add_picture(image_paths['peak_demand_plot'], Inches(7), Inches(2), Inches(5), Inches(5.2))
+    slide5.shapes.add_picture(image_paths['hourly_load_heatmap'], Inches(7), Inches(2), Inches(5), Inches(5.2))
 
     slide6 = ppt.slides.add_slide(ppt.slide_layouts[1])
     slide6.shapes.title.text = "Hourly Averages Demand​"

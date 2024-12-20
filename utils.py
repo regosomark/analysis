@@ -124,7 +124,7 @@ def generate_energy_summary(
   return energy_summary
 
 
-def energy_consumption_plot(energy_summary):
+def energy_consumption_plot(energy_summary, folder_path):
 
   # Filter out rows labeled 'Total', 'Average', 'Max', or 'Min'
   monthly_data = energy_summary[~energy_summary['supply_period'].isin(
@@ -208,20 +208,21 @@ def energy_consumption_plot(energy_summary):
   # Save the plot as an image
   image_path = os.path.join(folder_path, 'energy_consumption.png')
   plt.savefig(image_path)
-  plt.show()
+  plt.close()  # Close the figure to free memory
+  return image_path
 
 
-def energy_behavior_plot(data):
+def energy_behavior_plot(client_data, folder_path):
   """
   Plots the energy behavior (Demand in kW) over the supply period.
 
   Parameters:
-      data (pd.DataFrame): DataFrame containing at least 'datetime' and 'kw' columns.
+      client_data (pd.client_dataFrame): client_dataFrame containing at least 'datetime' and 'kw' columns.
   """
   plt.figure(figsize=(14, 7))
   plt.plot(
-      data['datetime'],
-      data['kw'],
+      client_data['datetime'],
+      client_data['kw'],
       linestyle='-',
       color='orange',
       label='Demand (kW)')
@@ -229,10 +230,10 @@ def energy_behavior_plot(data):
   # Set title based on the actual date range in 'datetime', with start date
   # shifted by one month
   start_date = (
-      data['datetime'].min() +
+      client_data['datetime'].min() +
       pd.DateOffset(
           months=1)).strftime('%b-%y')
-  end_date = data['datetime'].max().strftime('%b-%y')
+  end_date = client_data['datetime'].max().strftime('%b-%y')
   plt.title(
       f'Energy Behavior Over Supply Period: {start_date} to {end_date}')
 
@@ -242,12 +243,12 @@ def energy_behavior_plot(data):
   # Adjust the x-axis to show Month-Year format (e.g., May-24, Jun-24)
   plt.xticks(
       pd.date_range(
-          start=data['datetime'].min(),
-          end=data['datetime'].max(),
+          start=client_data['datetime'].min(),
+          end=client_data['datetime'].max(),
           freq='MS'),
       labels=pd.date_range(
-          start=data['datetime'].min(),
-          end=data['datetime'].max(),
+          start=client_data['datetime'].min(),
+          end=client_data['datetime'].max(),
           freq='MS').strftime('%b-%y')
   )
 
@@ -267,160 +268,104 @@ def energy_behavior_plot(data):
   # Display the plot
   image_path = os.path.join(folder_path, 'energy_bevahior.png')
   plt.savefig(image_path)
-  plt.show()
+  plt.close()  # Close the figure to free memory
+  return image_path
 
 
-def plot_hourly_load_curve(hourly_summary, column_name='max',
-                           unit='MW', ylabel='Peak Demand', ylim: list = None):
-  if ylim is not None:
-    assert ylim[0] < ylim[1], "ylim should be a list with 2 elements, where the first element is less than the second."
-
-  # Create figure and axis
-  fig, ax = plt.subplots(figsize=(15, 5))
-
-  # Plot
-  hourly_summary[column_name].plot(
-      ax=ax, kind='area',
-      legend=True, color='#ff7f0e',
-      label=f'{ylabel} ({unit})'
-  )
-
-  # Set x- and y-axis labels
-  ax.set_xlabel("Hour")
-  plt.ylabel(f'{ylabel} ({unit})')
-
-  # Set y-axis minimum to 0
-  if ylim is not None:
-    ax.set_ylim(bottom=ylim[0], top=ylim[1])
-
-  # Show y-axis ticks 0,000.00
-  ax.get_yaxis().set_major_formatter(
-      plt.FuncFormatter(
-          lambda x, loc: "{:,.2f}".format(x)))
-
-  # Show all x-ticks
-  ax.set_xticks(hourly_summary.index)
-
-  # Get list of existing legend
-  legend = [l.get_text() for l in ax.get_legend().get_texts()]
-  # Place legend at the bottom of the plot
-  ax.legend(
-      legend,
-      loc='upper center',
-      bbox_to_anchor=(0.5, 0.99),
-      bbox_transform=fig.transFigure,
-      ncol=len(legend),
-  )
-
-  # Set x-ticks to be horizontal
-  plt.xticks(rotation=0)
-
-  # Set font to Poppins
-  # Load Poppins font
-  plt.rcParams['font.family'] = 'Poppins'
-
-  # Remove border box
-  ax.spines['top'].set_visible(False)
-  ax.spines['right'].set_visible(False)
-  ax.spines['left'].set_visible(False)
-  ax.spines['bottom'].set_visible(False)
-
-  # Add gray horizontal gridlines
-  ax.yaxis.grid(color='gray', linestyle='-', linewidth=0.25)
-
-  # Remove y-axis ticks only (keep labels)
-  ax.tick_params(axis='y', which='both', left=False)
-
-  # Remove x-axis ticks only (keep labels)
-  ax.tick_params(axis='x', which='both', bottom=False)
-
-  plt.show()
-
-
-def plot_hourly_by_day_load_curve(
-        hourly_by_day_summary, column_name='max', unit='MW', ylabel='Peak Demand', ylim: list = None):
-  if ylim is not None:
-    assert ylim[0] < ylim[1], "ylim should be a list with 2 elements, where the first element is less than the second."
-
-  # Create figure and axis
-  fig, ax = plt.subplots(figsize=(15, 5))
-
-  # Plot
-  hourly_by_day_summary.plot(
-      ax=ax, kind='line',
-      legend=True, colormap='tab10',
-      label=f'{ylabel} ({unit})'
-  )
-
-  # Set x- and y-axis labels
-  ax.set_xlabel("Hour")
-  ax.set_ylabel(f'{ylabel} ({unit})')
-
-  # Set y-axis minimum to 0
-  if ylim is not None:
-    ax.set_ylim(bottom=ylim[0], top=ylim[1])
-
-  # Show y-axis ticks 0,000.00
-  ax.get_yaxis().set_major_formatter(
-      plt.FuncFormatter(
-          lambda x, loc: "{:,.2f}".format(x)))
-
-  # Show all x-ticks
-  ax.set_xticks(hourly_by_day_summary.index)
-
-  # Get list of existing legend
-  legend = days_of_week
-  # Place legend at the bottom of the plot
-  ax.legend(
-      legend,
-      loc='upper center',
-      bbox_to_anchor=(0.5, 0.99),
-      bbox_transform=fig.transFigure,
-      ncol=len(legend),
-  )
-
-  # Set x-ticks to be horizontal
-  plt.xticks(rotation=0)
-
-  # Set font to Poppins
-  # Load Poppins font
-  plt.rcParams['font.family'] = 'Poppins'
-
-  # Remove border box
-  ax.spines['top'].set_visible(False)
-  ax.spines['right'].set_visible(False)
-  ax.spines['left'].set_visible(False)
-  ax.spines['bottom'].set_visible(False)
-
-  # Add gray horizontal gridlines
-  ax.yaxis.grid(color='gray', linestyle='-', linewidth=0.25)
-
-  # Remove y-axis ticks only (keep labels)
-  ax.tick_params(axis='y', which='both', left=False)
-
-  # Remove x-axis ticks only (keep labels)
-  ax.tick_params(axis='x', which='both', bottom=False)
-
-  # Save the plot as an image in the specific folder
-  image_path = os.path.join(folder_path,
-                            'peak_demand_plot.png')  # Save to 'plots' folder
-  plt.savefig(image_path)
-  plt.show()
-
-
-def hourly_load_table(hourly_by_day_summary, folder_path='image'):
+def generate_hourly_load_curve(client_data, folder_path, column_name='max', unit='kW', ylabel='Peak Demand', ylim=None):
   """
-  Creates and displays a heatmap table of the hourly load curve by day.
+  Generates and saves an hourly load curve plot based on client data.
+
+  Args:
+      client_data (pd.DataFrame): DataFrame containing the client data with 'hour', 'weekday', and 'kw' columns.
+      folder_path (str): Path to save the generated plot.
+      column_name (str): Column to use for the legend (default is 'max').
+      unit (str): Unit for the y-axis label (default is 'kW').
+      ylabel (str): Label for the y-axis (default is 'Peak Demand').
+      ylim (list): Optional list of two elements specifying y-axis limits.
+  """
+  try:
+    # Ensure the folder exists
+    os.makedirs(folder_path, exist_ok=True)
+
+    # Pivot table to calculate hourly load curve by day
+    hourly_load_curve_by_day = client_data.pivot_table(
+        index="hour",
+        columns="weekday",
+        values="kw",
+        aggfunc="mean"
+    )
+
+    if hourly_load_curve_by_day.empty:
+      raise ValueError("No data available to generate the hourly load curve.")
+
+    # Plot the hourly load curve
+    fig, ax = plt.subplots(figsize=(15, 5))
+
+    # Plot the pivoted data
+    hourly_load_curve_by_day.plot(
+        ax=ax,
+        kind='line',
+        legend=True,
+        colormap='tab10'
+    )
+
+    # Set axis labels and formatting
+    ax.set_xlabel("Hour")
+    ax.set_ylabel(f'{ylabel} ({unit})')
+
+    if ylim is not None:
+      assert ylim[0] < ylim[1], "ylim should be a list with two elements where the first is less than the second."
+      ax.set_ylim(bottom=ylim[0], top=ylim[1])
+
+    ax.get_yaxis().set_major_formatter(
+        plt.FuncFormatter(lambda x, loc: "{:,.2f}".format(x))
+    )
+
+    ax.set_xticks(hourly_load_curve_by_day.index)
+    ax.set_xticklabels(hourly_load_curve_by_day.index, rotation=0)
+
+    # Add legend
+    ax.legend(
+        title="Days of the Week",
+        loc='upper center',
+        bbox_to_anchor=(0.5, 1.1),
+        ncol=len(hourly_load_curve_by_day.columns)
+    )
+
+    # Add gridlines and remove border
+    ax.yaxis.grid(color='gray', linestyle='-', linewidth=0.25)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    # Save the plot
+    image_path = os.path.join(folder_path, 'hourly_load_curve.png')
+    plt.savefig(image_path)
+    plt.close()
+
+    print(f"Hourly load curve plot saved to {image_path}.")
+    return image_path
+
+  except Exception as e:
+    print(f"Error generating hourly load curve plot: {e}")
+    return None
+
+
+def generate_hourly_load_heatmap(client_data, folder_path='image'):
+  """
+  Generates an hourly load curve heatmap for a specific client, by day, and saves the image.
 
   Parameters:
-      hourly_by_day_summary (DataFrame): The summarized hourly load data.
-      folder_path (str): Directory to save the heatmap image (default: 'image').
+      client_data (DataFrame): The client data containing hourly and weekday load data.
+      folder_path (str): The folder to save the heatmap image (default: 'image').
   """
-  import matplotlib.pyplot as plt
-  import numpy as np
-  import seaborn as sns
-  import matplotlib.colors as mcolors
-  import os  # For directory handling
+  # Calculate hourly load curve by day (Pivot table)
+  hourly_load_curve_by_day = client_data.pivot_table(
+      index="hour",
+      columns="weekday",
+      values="kw",
+      aggfunc="mean"
+  )
 
   # Define the new color map based on the provided colors
   cmap = mcolors.LinearSegmentedColormap.from_list(
@@ -434,10 +379,11 @@ def hourly_load_table(hourly_by_day_summary, folder_path='image'):
   if not os.path.exists(folder_path):
     os.makedirs(folder_path)
 
-  # Display the hourly load curve by day as a heatmap table with the new color map
+  # Create the plot
   plt.figure(figsize=(15, 7))
+
   ax = sns.heatmap(
-      hourly_by_day_summary,
+      hourly_load_curve_by_day,
       annot=True,
       fmt=".2f",
       cmap=cmap,  # Use the updated colormap
@@ -454,127 +400,83 @@ def hourly_load_table(hourly_by_day_summary, folder_path='image'):
   # Rotate y-axis (hour) labels to make them vertical
   ax.set_yticklabels(ax.get_yticklabels(), rotation=0, ha='center')
 
+  # Labels and title
   plt.xlabel("Day", fontsize=15)  # X-axis title at the top
   plt.ylabel("Hour", fontsize=15)  # Y-axis title
-
   plt.title("Hourly Load Curve by Day (kW)", fontsize=16, pad=20)  # Add padding to title
 
   # Save the plot as an image in the specified folder
-  image_path = os.path.join(folder_path, 'hourly_load_curve.png')
+  image_path = os.path.join(folder_path, 'hourly_load_curve table.png')
   plt.savefig(image_path)
-  plt.show()
+  plt.close
+  return image_path
 
 
-def plot_demand_and_consumption_WESM(data):
+def plot_demand_and_consumption_WESM(client_data, folder_path='image'):
   """
   Plots hourly average demand (kW) and consumption (kWh) against WESM average.
 
   Parameters:
-  - data (DataFrame): DataFrame containing 'hour', 'kwh', 'kw', and 'wesm' columns.
+  - client_data (DataFrame): DataFrame containing 'hour', 'kwh', 'kw', and 'wesm' columns.
+  - folder_path (str): Path to the folder where the plot image will be saved.
   """
-
   # Ensure 'kwh', 'kw', and 'wesm' columns are numeric
-  # Ensure 'kwh', 'kw', and 'wesm' columns are numeric
-  data['kwh'] = pd.to_numeric(data['kwh'], errors='coerce')
-  data['kw'] = pd.to_numeric(data['kw'], errors='coerce')
-  data['wesm'] = pd.to_numeric(data['wesm'], errors='coerce')
+  client_data['kwh'] = pd.to_numeric(client_data['kwh'], errors='coerce')
+  client_data['kw'] = pd.to_numeric(client_data['kw'], errors='coerce')
+  client_data['wesm'] = pd.to_numeric(client_data['wesm'], errors='coerce')
 
-  # Group by the 'hour' column and calculate the mean for 'kw', 'kwh', and
-  # 'wesm'
-  hourly_data = data.groupby('hour')[['kw', 'kwh', 'wesm']].mean()
+  # Group by the 'hour' column and calculate the mean for 'kw', 'kwh', and 'wesm'
+  hourly_data = client_data.groupby('hour')[['kw', 'kwh', 'wesm']].mean()
 
   # Plotting
   fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))
 
   # First plot: Hourly Average Demand (kW) vs. WESM Average
-  ax1.plot(
-      hourly_data.index,
-      hourly_data['kw'],
-      color='orange',
-      label='Hourly Average Demand (kW)')
+  ax1.plot(hourly_data.index, hourly_data['kw'], color='orange', label='Hourly Average Demand (kW)')
   ax1.set_ylabel('Demand (kW)', color='black')
   ax1.tick_params(axis='y', labelcolor='black')
-  ax1.set_xticks(range(1, 25))  # Set x-axis ticks from 1 to 24
-  ax1.set_xticklabels(range(1, 25))  # Label x-axis ticks from 1 to 24
+  ax1.set_xticks(range(1, 25))
+  ax1.set_xticklabels(range(1, 25))
 
-  # Remove plot borders (spines) for the first plot
-  for spine in ax1.spines.values():
-    spine.set_visible(False)
-
-  # Second y-axis for WESM on the right for the first plot
   ax1_twin = ax1.twinx()
-  ax1_twin.plot(
-      hourly_data.index,
-      hourly_data['wesm'],
-      color='blue',
-      label='WESM Average')
+  ax1_twin.plot(hourly_data.index, hourly_data['wesm'], color='blue', label='WESM Average')
   ax1_twin.set_ylabel('WESM', color='black')
   ax1_twin.tick_params(axis='y', labelcolor='black')
 
-  # Remove the spines around the second y-axis as well
-  for spine in ax1_twin.spines.values():
-    spine.set_visible(False)
-
-  # Title and legends for the first plot
   ax1.set_title('Hourly Average Demand vs. WESM Average')
-  ax1.legend(loc="upper left")  # Add legend inside the first plot
-  # Add legend inside the right y-axis for WESM
+  ax1.legend(loc="upper left")
   ax1_twin.legend(loc="upper right")
-
-  # Enable only horizontal grid lines for the first plot
   ax1.grid(True, axis='y')
 
   # Second plot: Hourly Average Consumption (kWh) vs. WESM Average
-  ax2.plot(
-      hourly_data.index,
-      hourly_data['kwh'],
-      color='orange',
-      label='Hourly Average Consumption (kWh)')
+  ax2.plot(hourly_data.index, hourly_data['kwh'], color='orange', label='Hourly Average Consumption (kWh)')
   ax2.set_xlabel('Hour (1-24)')
   ax2.set_ylabel('Consumption (kWh)', color='black')
   ax2.tick_params(axis='y', labelcolor='black')
-  ax2.set_xticks(range(1, 25))  # Set x-axis ticks from 1 to 24
-  ax2.set_xticklabels(range(1, 25))  # Label x-axis ticks from 1 to 24
+  ax2.set_xticks(range(1, 25))
+  ax2.set_xticklabels(range(1, 25))
 
-  # Remove plot borders (spines) for the second plot
-  for spine in ax2.spines.values():
-    spine.set_visible(False)
-
-  # Second y-axis for WESM on the right for the second plot
   ax2_twin = ax2.twinx()
-  ax2_twin.plot(
-      hourly_data.index,
-      hourly_data['wesm'],
-      color='blue',
-      label='WESM Average')
+  ax2_twin.plot(hourly_data.index, hourly_data['wesm'], color='blue', label='WESM Average')
   ax2_twin.set_ylabel('WESM', color='black')
   ax2_twin.tick_params(axis='y', labelcolor='black')
 
-  # Remove the spines around the second y-axis for the second plot
-  for spine in ax2_twin.spines.values():
-    spine.set_visible(False)
-
-  # Title and legends for the second plot
   ax2.set_title('Hourly Average Consumption vs. WESM Average')
-  ax2.legend(loc="upper left")  # Add legend inside the second plot
-  # Add legend inside the right y-axis for WESM
+  ax2.legend(loc="upper left")
   ax2_twin.legend(loc="upper right")
-
-  # Enable only horizontal grid lines for the second plot
   ax2.grid(True, axis='y')
 
-  # Adjust layout to add spacing between the plots
   plt.tight_layout()
-  # Adjust vertical space between the two plots
   plt.subplots_adjust(hspace=0.5)
 
-  # Show the plots
+  # Save the plots to the specified folder
   image_path = os.path.join(folder_path, 'demand_consumption_wesm.png')
   plt.savefig(image_path)
-  plt.show()
+  plt.close()
+  return image_path
 
 
-def generate_daily_report(client_data, values_column='kw', wesm_column='wesm'):
+def generate_daily_report(client_data, values_column='kw', wesm_column='wesm', folder_path='image'):
   """
   Generate daily kW and WESM reports and display them as a heatmap.
 
@@ -647,7 +549,7 @@ def generate_daily_report(client_data, values_column='kw', wesm_column='wesm'):
     formatted_annotations = report[numeric_columns].apply(lambda col: col.map(lambda x: f"{x:,.2f}"))
 
     # Create a heatmap
-    plt.figure(figsize=(15, 7))
+    plt.figure(figsize=(20, 10))
     ax = sns.heatmap(
         normalized_data,
         annot=formatted_annotations,
@@ -662,14 +564,18 @@ def generate_daily_report(client_data, values_column='kw', wesm_column='wesm'):
     ax.xaxis.tick_top()
     ax.yaxis.set_tick_params(rotation=0)
 
-    plt.title("Daily kW Report", fontsize=16, pad=20)
-    plt.ylabel("Hour", fontsize=15)
-    plt.xlabel("Metrics", fontsize=15)
+    plt.title("Daily kW Report", fontsize=18, pad=30)
+    plt.ylabel("Hour", fontsize=15, labelpad=10)
+    plt.xlabel("Metrics", fontsize=15, labelpad=10)
 
     # Save the heatmap
     image_path = os.path.join(folder_path, 'daily_kw_report.png')
-    plt.savefig(image_path, bbox_inches='tight', format='png')
-    plt.show()
+    print(f"Saving heatmap to: {image_path}")  # Debug print
+    plt.tight_layout()  # Adjust layout to prevent clipping
+    plt.savefig(image_path, dpi=300, bbox_inches='tight')  # Save high-resolution image
+    plt.close()
+
+    return image_path  # Return the image path
 
   # Display the heatmap
-  display_table_as_heatmap(daily_kw_report_trimmed)
+  return display_table_as_heatmap(daily_kw_report_trimmed)
