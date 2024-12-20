@@ -1,0 +1,74 @@
+{
+  "editor.fontSize": 15,
+  "editor.wordWrap": "on",
+  "editor.formatOnPaste": true,
+  "editor.multiCursorModifier": "ctrlCmd",
+  "editor.snippetSuggestions": "top",
+  "[python]": {
+    "editor.formatOnType": true,
+    "editor.defaultFormatter": "ms-python.autopep8",
+    "diffEditor.ignoreTrimWhitespace": false
+  },
+  "notebook.lineNumbers": "on",
+  "notebook.diff.ignoreOutputs": true,
+  "notebook.diff.ignoreMetadata": true,
+  "editor.minimap.enabled": false,
+  "editor.rulers": [
+    80,
+    120
+  ],
+  "editor.mouseWheelZoom": true,
+  "output.smartScroll.enabled": false,
+  "git.autofetch": true,
+  "files.associations": {
+    "*.rmd": "markdown"
+  },
+  "window.autoDetectColorScheme": true,
+  "editor.inlineSuggest.enabled": true,
+  "terminal.integrated.defaultProfile.windows": "Git Bash",
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": true,
+    "markdown": true,
+    "scminput": false,
+    "yaml": true,
+    "python": true
+  },
+  "remote.tunnels.alwaysUpdateCLI": true,
+  "explorer.sortOrder": "type",
+  "editor.indentSize": "tabSize",
+  "editor.inlineSuggest.showToolbar": "always",
+  "autopep8.args": [
+    "--indent-size=2",
+    "--max-line-length=120",
+    "--ignore=E121"
+  ],
+  "python.formatting.autopep8Args": [
+    "--indent-size=2",
+    "--max-line-length=80",
+    "--ignore=E121"
+  ],
+  "terminal.integrated.tabFocusMode": false,
+  "notebook.output.scrolling": true,
+  "liveshare.guestApprovalRequired": true,
+  "editor.accessibilitySupport": "off",
+  "application.shellEnvironmentResolutionTimeout": 50,
+  "gitlens.graph.layout": "panel",
+  "notebook.formatOnSave.enabled": true,
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "breadcrumbs.enabled": false,
+  "python.formatting.provider": "none",
+  "editor.detectIndentation": false,
+  "editor.largeFileOptimizations": false,
+  "diffEditor.ignoreTrimWhitespace": false,
+  "workbench.colorTheme": "Default Light Modern",
+  "window.restoreWindows": "none",
+  "workbench.editor.empty.hint": "hidden",
+  "remote.autoForwardPortsSource": "hybrid",
+  "jupyter.widgetScriptSources": [
+    "jsdelivr.com",
+    "unpkg.com"
+  ],
+  "github.copilot.editor.enableAutoCompletions": true
+}
